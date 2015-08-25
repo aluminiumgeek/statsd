@@ -111,10 +111,21 @@ Optional Variables:
 
   automaticConfigReload: whether to watch the config file and reload it when it
                          changes. The default is true. Set this to false to disable.
+
+  storeGauges:      (boolean) restore gauges after restart. Enable only when redis backend
+                    is enabled and configured, otherwise it's useless option.
 */
 {
-  graphitePort: 2003
-, graphiteHost: "graphite.example.com"
-, port: 8125
-, backends: [ "./backends/graphite" ]
+  graphitePort: 2003,
+  graphiteHost: "graphite.example.com",
+  port: 8125,
+  flushInterval: 10000,
+  backends: ["./backends/graphite", "./backends/redis"],
+  dumpMessages: true,
+  redis: {
+    host: '127.0.0.1',
+    port: 6379,
+    key: 'statsd'
+  },
+  storeGauges: true,
 }

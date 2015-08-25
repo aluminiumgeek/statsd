@@ -16,6 +16,7 @@ var util    = require('util')
 // initialize data structures with defaults for statsd stats
 var keyCounter = {};
 var counters = {};
+var backends = {};
 var timers = {};
 var timer_counters = {};
 var gauges = {};
@@ -44,6 +45,7 @@ function loadBackend(config, name) {
     l.log("Failed to load backend: " + name);
     process.exit(1);
   }
+  backends[name] = backendmod;
 }
 
 // Load and init the server from the servers/ directory.
@@ -474,6 +476,25 @@ config.configFile(process.argv[2], function (config) {
         // clear the counter
         keyCounter = {};
       }, keyFlushInterval);
+    }
+
+    // Restore gauges
+    if (config.storeGauges && config.backends.indexOf('./backends/redis') !== -1) {
+      if (config.debug) {
+        l.log("Trying to restore gauges", 'DEBUG');
+      }
+      redis_backend = backends['./backends/redis'];
+      if (redis_backend.instance.client) {
+        redis_backend.instance.client.get(redis_backend.instance.config.key, function(err, reply) {
+          if (!err && reply) {
+            var data = JSON.parse(reply);
+            if (data.gauges) {
+              gauges = data.gauges;
+              l.log("Restored gauges: " + JSON.stringify(gauges), 'DEBUG');
+            }
+          }
+        });
+      }
     }
   }
 });

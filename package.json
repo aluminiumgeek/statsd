@@ -15,7 +15,8 @@
   },
   "version": "0.7.2",
   "dependencies": {
-    "generic-pool": "2.2.0"
+    "generic-pool": "2.2.0",
+    "redis": "0.12.1"
   },
   "devDependencies": {
     "nodeunit": "0.7.x",

@@ -12,6 +12,8 @@
  *
  *   graphiteHost: Hostname of graphite server.
  *   graphitePort: Port to contact graphite server at.
+ *   sendInternalMetrics: Sent internal statsd metrics
+ *   counterMetrics: Types of counter metrics to sent
  */
 
 var net = require('net');
@@ -23,6 +25,8 @@ var debug;
 var flushInterval;
 var graphiteHost;
 var graphitePort;
+var sendInternalMetrics;
+var counterMetrics;
 var flush_counts;
 
 // prefix configuration
@@ -109,6 +113,9 @@ var flush_stats = function graphite_flush(ts, metrics) {
     }
   };
 
+  var appendRate = counterMetrics.indexOf('rate') !== -1;
+  var appendCount = counterMetrics.indexOf('count') !== -1 && flush_counts;
+
   for (key in counters) {
     var value = counters[key];
     var valuePerSecond = counter_rates[key]; // pre-calculated "per second" rate
@@ -121,8 +128,10 @@ var flush_stats = function graphite_flush(ts, metrics) {
         statString += 'stats_counts.' + keyName + globalSuffix + value + ts_suffix;
       }
     } else {
-      statString += namespace.concat('rate').join(".")  + globalSuffix + valuePerSecond + ts_suffix;
-      if (flush_counts) {
+      if (appendRate) {
+        statString += namespace.concat('rate').join(".")  + globalSuffix + valuePerSecond + ts_suffix;
+      }
+      if (appendCount) {
         statString += namespace.concat('count').join(".") + globalSuffix + value + ts_suffix;
       }
     }
@@ -162,19 +171,21 @@ var flush_stats = function graphite_flush(ts, metrics) {
     numStats += 1;
   }
 
-  var namespace = globalNamespace.concat(prefixStats);
-  if (legacyNamespace === true) {
-    statString += prefixStats + '.numStats' + globalSuffix + numStats + ts_suffix;
-    statString += 'stats.' + prefixStats + '.graphiteStats.calculationtime' + globalSuffix + (Date.now() - starttime) + ts_suffix;
-    for (key in statsd_metrics) {
-      statString += 'stats.' + prefixStats + '.' + key + globalSuffix + statsd_metrics[key] + ts_suffix;
-    }
-  } else {
-    statString += namespace.join(".") + '.numStats' + globalSuffix + numStats + ts_suffix;
-    statString += namespace.join(".") + '.graphiteStats.calculationtime' + globalSuffix + (Date.now() - starttime) + ts_suffix;
-    for (key in statsd_metrics) {
-      var the_key = namespace.concat(key);
-      statString += the_key.join(".") + globalSuffix + statsd_metrics[key] + ts_suffix;
+  if (sendInternalMetrics) {
+    var namespace = globalNamespace.concat(prefixStats);
+    if (legacyNamespace === true) {
+      statString += prefixStats + '.numStats' + globalSuffix + numStats + ts_suffix;
+      statString += 'stats.' + prefixStats + '.graphiteStats.calculationtime' + globalSuffix + (Date.now() - starttime) + ts_suffix;
+      for (key in statsd_metrics) {
+        statString += 'stats.' + prefixStats + '.' + key + globalSuffix + statsd_metrics[key] + ts_suffix;
+      }
+    } else {
+      statString += namespace.join(".") + '.numStats' + globalSuffix + numStats + ts_suffix;
+      statString += namespace.join(".") + '.graphiteStats.calculationtime' + globalSuffix + (Date.now() - starttime) + ts_suffix;
+      for (key in statsd_metrics) {
+        var the_key = namespace.concat(key);
+       statString += the_key.join(".") + globalSuffix + statsd_metrics[key] + ts_suffix;
+      }
     }
   }
   post_stats(statString);
@@ -258,6 +269,8 @@ exports.init = function graphite_init(startup_time, config, events, logger) {
   }
 
   flushInterval = config.flushInterval;
+  sendInternalMetrics = config.sendInternalMetrics || true;
+  counterMetrics = config.counterMetrics || ['counter', 'rate'];
 
   flush_counts = typeof(config.flush_counts) === "undefined" ? true : config.flush_counts;
 

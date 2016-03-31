@@ -112,8 +112,13 @@ Optional Variables:
   automaticConfigReload: whether to watch the config file and reload it when it
                          changes. The default is true. Set this to false to disable.
 
-  storeGauges:      (boolean) restore gauges after restart. Enable only when redis backend
-                    is enabled and configured, otherwise it's useless option.
+  storeGauges:      restore gauges after restart. Enable only when redis backend
+                    is enabled and configured, otherwise it's useless option [boolean, default: false]
+
+  sendInternalMetrics: send internal metrics to graphite [bollean, default: true]
+
+  counterMetrics:   an array of counter metric types that should be sent to graphite.
+                    Available types: count, rate [array, default: ['count', 'rate']]
 */
 {
   graphitePort: 2003,
@@ -128,4 +133,6 @@ Optional Variables:
     key: 'statsd'
   },
   storeGauges: true,
+  sendInternalMetrics: false,
+  counterMetrics: ['count']
 }
